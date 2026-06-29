@@ -1,6 +1,48 @@
 @import 'tailwindcss';
+@plugin '@tailwindcss/typography';
 
 @custom-variant dark (&:is(.dark *));
+
+/* Map prose colors to the app's semantic tokens so light/dark switches automatically */
+.prose {
+  --tw-prose-body: var(--foreground);
+  --tw-prose-headings: var(--foreground);
+  --tw-prose-links: var(--primary);
+  --tw-prose-bold: var(--foreground);
+  --tw-prose-counters: var(--muted-foreground);
+  --tw-prose-bullets: var(--muted-foreground);
+  --tw-prose-hr: var(--border);
+  --tw-prose-quotes: var(--foreground);
+  --tw-prose-quote-borders: var(--primary);
+  --tw-prose-captions: var(--muted-foreground);
+  --tw-prose-code: var(--foreground);
+  --tw-prose-pre-code: var(--foreground);
+  --tw-prose-pre-bg: transparent;
+  --tw-prose-th-borders: var(--border);
+  --tw-prose-td-borders: var(--border);
+}
+
+/* Code blocks: give plain (no-language) blocks a neutral tint; let hljs own highlighted ones */
+.prose pre {
+  background: var(--muted) !important;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  padding: 1rem 1.25rem !important;
+}
+.prose pre code {
+  font-size: 0.875em;
+  background: transparent !important;
+  color: var(--foreground);
+}
+/* hljs overrides the background with its own theme — allow that */
+.prose pre code.hljs {
+  border-radius: 0;
+  padding: 1rem 1.25rem;
+}
+.prose pre:has(code.hljs) {
+  background: transparent !important;
+  padding: 0 !important;
+}
 
 @theme inline {
   --color-background: var(--background);
@@ -116,4 +158,25 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Document search highlights */
+mark.search-match {
+  background-color: oklch(0.92 0.18 95);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.dark mark.search-match {
+  background-color: oklch(0.55 0.18 85);
+  color: oklch(0.985 0 0);
+}
+mark.search-match.search-match-active {
+  background-color: oklch(0.65 0.22 25);
+  color: white;
+  box-shadow: 0 0 0 2px oklch(0.65 0.22 25 / 0.3);
+}
+.dark mark.search-match.search-match-active {
+  background-color: oklch(0.6 0.22 25);
+  color: white;
 }
