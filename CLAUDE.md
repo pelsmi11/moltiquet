@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> Project context for Claude Code. Read this fully before making changes. Keep edits to this file in sync with the codebase.
+> Project context for Claude Code. Read this fully before making changes. Keep edits to this file in sync with the codebase. For details on **what is actually on disk** vs the aspirational plan, see `.claude/memory/actual-state.md`. For non-obvious architecture decisions, see `.claude/memory/architecture.md`. For concrete traps, see `.claude/memory/gotchas.md`.
 
 ## What Moltiquet is
 
@@ -51,6 +51,10 @@ Explicitly OUT of scope for MVP 1 (do not build, even if asked offhandedly — f
 
 If a request implies one of these, build the MVP-appropriate seam for it but stop short of the feature, and say so.
 
+**Status of MVP 1 features (read `.claude/actual-state.md` for details):**
+implemented — file open (dialog + association), GFM, syntax highlighting, TOC, tabs, themes (persisted), in-document find (pure-JS overlay, not native), i18n en/es, resizable TOC panel.
+not yet implemented — Mermaid, KaTeX, `WindowProvider` / `service-container.ts`, `MermaidBlock.tsx`.
+
 ---
 
 ## Tech stack
@@ -60,9 +64,9 @@ Scaffolded with `@quick-start/electron` (the `electron-vite` starter). Core stac
 - **Electron** + **electron-vite** (three-process build: main, preload, renderer).
 - **React 19** + **TypeScript** (strict).
 - **Tailwind CSS v4** + **shadcn/ui** — already configured (see setup notes below).
-- **Zustand** for renderer app state (open tabs, active file, theme).
+- **Zustand** for renderer app state (open tabs, active file).
 - **pnpm** as the package manager (v11+; see gotcha below).
-- **Vitest** + **@testing-library/react** for tests.
+- **Vitest** + **@testing-library/react` for tests.
 - **electron-builder** for packaging, **electron-updater** wired for future GitHub-Releases auto-update.
 - **ESLint** + **Prettier** (configs come from `@electron-toolkit/*`).
 
@@ -87,6 +91,8 @@ Scaffolded with `@quick-start/electron` (the `electron-vite` starter). Core stac
 
 Sanitization: if raw HTML inside Markdown is ever enabled, it MUST be sanitized (`rehype-sanitize`). For MVP 1, prefer NOT allowing raw HTML.
 
+`github-slugger` powers heading slugs in TOC and search — installed, used.
+
 ---
 
 ## Architecture
@@ -99,7 +105,7 @@ Electron splits the app into three processes. Respect the boundaries — most bu
 ```
 
 - **Main** (`src/main`): the only process with Node.js / OS access. Owns the app lifecycle, creates windows, reads files from disk, registers file associations, persists config. One per app.
-- **Preload** (`src/preload`): the secure bridge. Uses `contextBridge.exposeInMainWorld` to expose a small, **typed** API to the renderer. Never expose raw `ipcRenderer` or Node modules.
+- **Preload** (`src/preload`): the secure bridge. Uses `contextBridge.exposeInMainWorld` to expose a small, **typed** API to the renderer as `window.api`. **Never expose raw `ipcRenderer` or Node modules.**
 - **Renderer** (`src/renderer`): a normal Vite + React app, sandboxed. No direct Node access. Talks to main only through the preload API.
 
 ### Security rules (non-negotiable)
@@ -107,28 +113,32 @@ Electron splits the app into three processes. Respect the boundaries — most bu
 - `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true` on every `BrowserWindow`. Never weaken these "to make something easier."
 - All privileged work (reading a file, opening a dialog) happens in main and is requested from the renderer via IPC.
 - IPC uses the request/response pattern: `ipcRenderer.invoke` ↔ `ipcMain.handle`. Reserve `send`/`on` for genuine fire-and-forget events (e.g. "file opened via double-click" pushed from main).
+- `setWindowOpenHandler` must validate the URL scheme (`http:` / `https:`) before `shell.openExternal`.
+- `will-navigate` on the webContents must be prevented.
+- On Windows/Linux, gate the app with `app.requestSingleInstanceLock()` and handle `second-instance` to forward argv paths.
 
-### Main-process organization: service providers
+### Main-process organization: service providers (simplified from plan)
 
-The main process is organized as a small set of **single-responsibility provider classes** registered in a central container (inspired by Zettlr's architecture). This is what keeps later phases (converters, AI) pluggable without rewrites.
+The plan originally described a `service-container.ts` with registered providers. **That abstraction is not yet in place** — providers are currently instantiated inline in `src/main/index.ts`. The single-responsibility provider classes themselves are present and form the seams for the future container:
 
-- `ConfigProvider` — read/write persisted settings (theme, recent files).
-- `WindowProvider` — create and manage `BrowserWindow`s.
+- `ConfigProvider` — read/write persisted settings (theme, language).
 - `FileProvider` — read Markdown files from disk, resolve relative asset paths.
-- `FileAssociationProvider` — handle `open-file` (macOS) and `argv`-based file opens (Windows/Linux).
+- `FileAssociationProvider` — handle `open-file` (macOS) and `argv`-based file opens (Windows/Linux), plus single-instance argv forwarding.
 
-For later phases, new capabilities arrive as new providers behind an interface (e.g. `AIProvider`, `ConverterProvider`) registered in the same container. **Do not** add those interfaces yet — just keep the container pattern clean so they slot in later.
+`WindowProvider` is **not yet implemented** — the `BrowserWindow` is created directly in `createWindow()`. When extracting it, the `WindowProvider` should own the `before-input-event` DevTools shortcut and the `will-navigate` prevention. Do not add `AIProvider` / `ConverterProvider` interfaces yet — keep the container pattern clean so they slot in later.
 
 ### The IPC contract is shared and typed
 
 Main and renderer must agree on the shape of every IPC call. Define those types once in `shared/` and import them on both sides. The preload `index.d.ts` types `window.api` from the same contract. A new IPC channel is added in three coordinated places: the shared type, the main `handle`, and the preload-exposed method.
 
+The full list of channels lives in `shared/ipc.ts`. As of this writing: `settings:get|set-language`, `file:open-dialog|read|opened`, `theme:get|set|changed`, `tab:close`, `language:changed`. Document search uses a pure-JS implementation in the renderer — no `find:*` IPC channels.
+
 ### Keep logic out of Electron
 
 Push all real logic into **pure, framework-free modules** that can be imported and tested without spinning up Electron or a DOM:
 
-- TOC extraction from headings → pure function.
-- In-document search (find matches, ranges) → pure function.
+- TOC heading extraction → `features/toc/utils/functions/extract-headings.ts` (pure, tested).
+- Document search `findMatches` + `highlight` → `features/reader/lib/search.ts` + `features/reader/lib/highlight.ts` (pure, tested).
 - Any Markdown pre/post-processing → pure function.
 
 Electron- and React-specific code should be a thin shell around these. This is the single most important rule for testability.
@@ -141,16 +151,14 @@ Electron- and React-specific code should be a thin shell around these. This is t
 moltiquet/
 ├── src/
 │   ├── main/
-│   │   ├── index.ts                  # app lifecycle, bootstraps the container
-│   │   ├── service-container.ts      # registers + resolves providers
+│   │   ├── index.ts                  # app lifecycle, providers wired inline
 │   │   ├── providers/
 │   │   │   ├── config-provider.ts
-│   │   │   ├── window-provider.ts
 │   │   │   ├── file-provider.ts
 │   │   │   └── file-association-provider.ts
 │   │   ├── ipc/
 │   │   │   └── handlers.ts           # ipcMain.handle registrations
-│   │   └── lib/                      # pure, testable helpers
+│   │   └── lib/                      # pure, testable helpers (config, file, i18n, menu)
 │   ├── preload/
 │   │   ├── index.ts                  # contextBridge.exposeInMainWorld('api', …)
 │   │   └── index.d.ts                # types for window.api
@@ -161,33 +169,32 @@ moltiquet/
 │           ├── App.tsx
 │           ├── components/
 │           │   ├── ui/               # shadcn/ui components (generated via shadcn add)
-│           │   ├── MarkdownView.tsx
-│           │   ├── MermaidBlock.tsx
-│           │   ├── TableOfContents.tsx
-│           │   ├── SearchBar.tsx
-│           │   └── TabBar.tsx
-│           ├── lib/
-│           │   ├── utils.ts          # cn() helper — already present
-│           │   ├── markdown.tsx      # react-markdown config (plugins, components)
-│           │   ├── toc.ts            # heading extraction (PURE — unit tested)
-│           │   └── search.ts         # in-document search (PURE — unit tested)
-│           ├── store/                # zustand stores (tabs, theme)
-│           ├── hooks/
+│           ├── features/             # feature-sliced: reader/, tabs/, toc/, toolbar/, settings/
+│           │   ├── reader/           # MarkdownView, SearchBar, useDocumentSearch, search.ts, highlight.ts
+│           │   ├── tabs/            # TabBar + interfaces
+│           │   ├── toc/             # TableOfContents + extract-headings
+│           │   ├── toolbar/         # Toolbar (open, file name, search button, theme)
+│           │   └── settings/         # languages constant; expand here for settings UI
+│           ├── store/                # zustand stores (tabs)
+│           ├── hooks/                # cross-cutting hooks (useActiveHeading, useHighlightTheme)
+│           ├── lib/                  # utils, i18n
 │           └── styles/
-│               └── globals.css       # Tailwind v4 + shadcn CSS variables — already present
+│               └── globals.css
 ├── shared/
-│   └── ipc.ts                        # IPC contract types (main <-> renderer)
+│   └── ipc.ts                        # IPC contract types
 ├── tests/                            # cross-cutting tests (or colocate *.test.ts)
 ├── electron.vite.config.ts
 ├── vitest.config.ts
 ├── electron-builder.yml
-├── components.json                   # shadcn config — already present
-├── .mcp.json                         # shadcn MCP server for Claude Code — already present
-├── pnpm-workspace.yaml               # holds allowBuilds approval — already committed
+├── components.json
+├── .mcp.json
+├── pnpm-workspace.yaml
 ├── CLAUDE.md
 ├── README.md
 └── LICENSE
 ```
+
+The empty `screens/`, `services/`, `interfaces/`, `utils/{constants,functions}/` folders under each feature are scaffold placeholders. **Do not add new code to those folders** — use the feature's `lib/` and `hooks/` instead. Remove the empty `.gitkeep` directories opportunistically.
 
 ---
 
@@ -197,16 +204,17 @@ Philosophy: test the pure logic exhaustively, test components at the seams, and 
 
 Layers:
 
-1. **Pure unit tests (most of the suite).** `toc.ts`, `search.ts`, and any Markdown transforms are plain functions — test them directly with fast, DOM-free Vitest tests. Aim for high coverage here; this is where the real logic lives.
-2. **Renderer component tests.** Use `@testing-library/react` in a `jsdom` (or `happy-dom`) environment. Mock the preload bridge by stubbing `window.api` so components can be tested without a real main process.
+1. **Pure unit tests (most of the suite).** `extract-headings.ts`, `search.ts`, `highlight.ts`, and any Markdown transforms are plain functions — test them directly with fast, DOM-free Vitest tests. Aim for high coverage here; this is where the real logic lives.
+2. **Renderer component tests.** Use `@testing-library/react` in a `jsdom` environment. Mock the preload bridge by stubbing `window.api` (see `vitest.setup.ts`) so components can be tested without a real main process.
 3. **Provider logic tests.** Test the _logic_ inside providers by extracting it into pure helpers in `main/lib` and testing those. Do NOT boot Electron to test a handler.
-4. **E2E (Playwright) — out of scope for MVP 1.**
+4. **Hook tests.** `useDocumentSearch` has two test files: `useDocumentSearch.test.tsx` (mocks the highlight module) and `useDocumentSearch.integration.test.tsx` (real DOM). Add to the latter when testing actual layout effects; the former is enough for state and navigation.
+5. **E2E (Playwright) — out of scope for MVP 1.**
 
 Setup expectations:
 
-- A dedicated `vitest.config.ts` that mirrors the renderer's `@/*` alias and uses the React plugin, with `environment: 'jsdom'` for component tests.
-- `@vitest/coverage-v8` for coverage.
-- Co-locate small unit tests as `*.test.ts` next to the code; put broader tests in `tests/`.
+- `vitest.config.ts` mirrors the renderer's `@/*` alias and uses the React plugin, with `environment: 'jsdom'` for component tests.
+- `@vitest/coverage-v8` for coverage; 80% threshold on `features/**` and `main/lib/**`.
+- Co-locate small unit tests as `*.test.ts` next to the code.
 - Write tests alongside features in the same change. A feature PR without tests for its pure logic is incomplete.
 
 ---
@@ -241,6 +249,7 @@ pnpm build:linux    # package for Linux
 ## Environment gotchas
 
 - **pnpm 11 build approval.** `pnpm-workspace.yaml` already has `allowBuilds` for `electron`, `electron-winstaller`, and `esbuild` — commit this file so contributors get it automatically. If adding a new native dep, run `pnpm approve-builds` and commit the updated `pnpm-workspace.yaml`.
-- **Stale `pnpm` field in `package.json`.** The `"pnpm": { "onlyBuiltDependencies": [...] }` field is ignored by pnpm 11 — it has been removed. Do not re-add it.
-- **DevTools on macOS:** `⌘ + ⌥ + I` (there is no F12 on the MacBook Pro layout by default).
-- **macOS file-open semantics:** file associations arrive via the `open-file` app event, not `argv`. Windows/Linux pass the path in `process.argv`. `FileAssociationProvider` must handle both, including the cold-start case (app launched _by_ opening a file) and the already-running case.
+- **No `pnpm.onlyBuiltDependencies` in `package.json`.** pnpm 11 ignores that field. If you see it re-added by a tool, remove it.
+- **DevTools on macOS.** `View → Toggle Developer Tools` menu (or `Cmd/Ctrl+Alt+I`). The standard `Cmd+Opt+I` does NOT work out of the box because `@electron-toolkit/utils`'s `watchWindowShortcuts` only registers `Cmd+Shift+I`. The custom `role: 'toggleDevTools'` menu entry fixes this.
+- **macOS file-open semantics.** File associations arrive via the `open-file` app event, not `argv`. Windows/Linux pass the path in `process.argv`. `FileAssociationProvider` handles both, including the cold-start case (app launched _by_ opening a file) and the already-running case (single-instance lock + `second-instance` forwards argv).
+- **`AppUserModelId`** is `com.moltiquet.desktop`. Changing it changes Windows taskbar grouping; don't "clean up" without confirming.
