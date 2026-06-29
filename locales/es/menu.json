@@ -8,6 +8,7 @@
   "view": {
     "menu": "Vista",
     "toggleTheme": "Cambiar tema",
+    "toggleDevTools": "Alternar herramientas de desarrollo",
     "language": "Idioma"
   },
   "languages": {

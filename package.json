@@ -27,14 +27,23 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
+    "@tailwindcss/typography": "^0.5.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "electron-updater": "^6.3.9",
+    "github-slugger": "^2.0.0",
+    "highlight.js": "^11.11.1",
     "i18next": "^26.3.3",
     "lucide-react": "^1.21.0",
     "radix-ui": "^1.6.0",
     "react-i18next": "^17.0.8",
-    "tailwind-merge": "^3.6.0"
+    "react-markdown": "^10.1.0",
+    "react-resizable-panels": "^4.12.0",
+    "rehype-highlight": "^7.0.2",
+    "rehype-slug": "^6.0.0",
+    "remark-gfm": "^4.0.1",
+    "tailwind-merge": "^3.6.0",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",
@@ -66,11 +75,5 @@
     "typescript": "^5.9.3",
     "vite": "^7.2.6",
     "vitest": "^4.1.9"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "electron",
-      "esbuild"
-    ]
   }
 }

@@ -6,14 +6,29 @@ import { SUPPORTED_LANGUAGES } from './i18n'
 export function buildAppMenu(
   t: TFunction<'menu'>,
   currentLng: string,
-  onLanguageChange: (lng: string) => Promise<void>
+  onLanguageChange: (lng: string) => Promise<void>,
+  onOpenFile: () => Promise<void>,
+  onToggleTheme: () => void,
+  onCloseTab: () => void
 ): void {
   const menu = Menu.buildFromTemplate([
     {
       label: t('file.menu'),
       submenu: [
-        { label: t('file.open') },
-        { label: t('file.closeTab') },
+        {
+          label: t('file.open'),
+          accelerator: 'CmdOrCtrl+O',
+          click: (): void => {
+            onOpenFile().catch(console.error)
+          }
+        },
+        {
+          label: t('file.closeTab'),
+          accelerator: 'CmdOrCtrl+W',
+          click: (): void => {
+            onCloseTab()
+          }
+        },
         { type: 'separator' },
         { label: t('file.quit'), role: 'quit' }
       ]
@@ -21,7 +36,18 @@ export function buildAppMenu(
     {
       label: t('view.menu'),
       submenu: [
-        { label: t('view.toggleTheme') },
+        {
+          label: t('view.toggleTheme'),
+          click: (): void => {
+            onToggleTheme()
+          }
+        },
+        { type: 'separator' },
+        {
+          label: t('view.toggleDevTools'),
+          accelerator: 'CmdOrCtrl+Alt+I',
+          role: 'toggleDevTools'
+        },
         { type: 'separator' },
         {
           label: t('view.language'),
@@ -48,5 +74,12 @@ export function buildAppMenu(
 export function notifyRendererLanguageChanged(lng: string): void {
   BrowserWindow.getAllWindows().forEach((win) => {
     win.webContents.send(IPC_CHANNELS.LANGUAGE_CHANGED, lng)
+  })
+}
+
+/** Pushes theme:changed to all open renderer windows. */
+export function notifyThemeChanged(theme: 'light' | 'dark'): void {
+  BrowserWindow.getAllWindows().forEach((win) => {
+    win.webContents.send(IPC_CHANNELS.THEME_CHANGED, theme)
   })
 }

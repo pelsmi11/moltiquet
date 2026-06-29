@@ -16,19 +16,12 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
     include: ['src/renderer/src/**/*.test.{ts,tsx}', 'src/main/lib/**/*.test.ts'],
-    environmentMatchGlobs: [
-      ['src/main/lib/**/*.test.ts', 'node'],
-      ['src/renderer/src/**/*.test.{ts,tsx}', 'jsdom']
-    ],
     css: false,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
       include: ['src/renderer/src/features/**', 'src/main/lib/**'],
-      exclude: [
-        'src/main/lib/menu.ts',
-        'src/renderer/src/features/**/utils/constants/**'
-      ],
+      exclude: ['src/main/lib/menu.ts', 'src/renderer/src/features/**/utils/constants/**'],
       thresholds: {
         lines: 80,
         functions: 80,

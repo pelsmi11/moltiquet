@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest'
 import { resolveLanguage, createMainI18n, SUPPORTED_LANGUAGES } from './i18n'
 

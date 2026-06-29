@@ -12,6 +12,19 @@ if (typeof window !== 'undefined') {
     disconnect = vi.fn()
   }
 
+  // jsdom does not implement IntersectionObserver
+  global.IntersectionObserver = class IntersectionObserver {
+    readonly root: Element | Document | null = null
+    readonly rootMargin: string = ''
+    readonly thresholds: ReadonlyArray<number> = []
+    observe = vi.fn()
+    unobserve = vi.fn()
+    disconnect = vi.fn()
+    takeRecords = vi.fn(() => [])
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-function
+    constructor(_callback: IntersectionObserverCallback, _options?: IntersectionObserverInit) {}
+  }
+
   // jsdom doesn't implement scrollIntoView
   Element.prototype.scrollIntoView = vi.fn()
 
@@ -40,15 +53,14 @@ if (typeof window !== 'undefined') {
     api: {
       getLanguage: vi.fn(() => Promise.resolve('en')),
       setLanguage: vi.fn(() => Promise.resolve({ success: true })),
-      onLanguageChanged: vi.fn(() => vi.fn())
-    },
-    electron: {
-      ipcRenderer: {
-        send: vi.fn(),
-        invoke: vi.fn(),
-        on: vi.fn(),
-        removeAllListeners: vi.fn()
-      }
+      onLanguageChanged: vi.fn(() => vi.fn()),
+      openFileDialog: vi.fn(() => Promise.resolve(null)),
+      readFile: vi.fn(() => Promise.resolve(null)),
+      onFileOpened: vi.fn(() => vi.fn()),
+      getTheme: vi.fn(() => Promise.resolve('light')),
+      setTheme: vi.fn(() => Promise.resolve(true)),
+      onThemeChanged: vi.fn(() => vi.fn()),
+      onTabClose: vi.fn(() => vi.fn())
     }
   })
 }

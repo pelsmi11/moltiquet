@@ -8,6 +8,7 @@
   "view": {
     "menu": "View",
     "toggleTheme": "Toggle Theme",
+    "toggleDevTools": "Toggle Developer Tools",
     "language": "Language"
   },
   "languages": {

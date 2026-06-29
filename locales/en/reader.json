@@ -1,5 +1,7 @@
 {
   "toc": "Table of Contents",
   "noFile": "No file open",
-  "searchPlaceholder": "Find in document…"
+  "openFile": "Open a Markdown file",
+  "searchPlaceholder": "Find in document…",
+  "search": "Search"
 }

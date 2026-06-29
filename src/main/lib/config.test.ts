@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect, afterAll } from 'vitest'
 import { tmpdir } from 'os'
 import { join } from 'path'

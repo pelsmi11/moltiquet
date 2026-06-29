@@ -1,5 +1,7 @@
 {
   "toc": "Tabla de contenidos",
   "noFile": "Ningún archivo abierto",
-  "searchPlaceholder": "Buscar en el documento…"
+  "openFile": "Abrir un archivo Markdown",
+  "searchPlaceholder": "Buscar en el documento…",
+  "search": "Buscar"
 }

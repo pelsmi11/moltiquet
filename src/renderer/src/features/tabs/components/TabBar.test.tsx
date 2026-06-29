@@ -1,30 +1,37 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
-import { mockTabs } from '../utils/constants/mock-tabs'
+import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { TooltipProvider } from '@/components/ui/tooltip'
+import { useTabsStore } from '@/store/tabs'
 import { TabBar } from './TabBar'
 
+const wrapper = ({ children }: { children: React.ReactNode }): React.JSX.Element => (
+  <TooltipProvider>{children}</TooltipProvider>
+)
+
+beforeEach(() => {
+  useTabsStore.setState({ tabs: [], activeId: null })
+})
+
 describe('TabBar', () => {
-  it('renders a button for each tab', () => {
-    render(<TabBar tabs={mockTabs} activeId={mockTabs[0].id} onSelect={vi.fn()} />)
-    for (const tab of mockTabs) {
-      expect(screen.getByText(tab.name)).toBeInTheDocument()
-    }
+  it('renders a button for each open tab', () => {
+    useTabsStore.setState({
+      tabs: [
+        { id: '/a.md', name: 'a.md', content: '' },
+        { id: '/b.md', name: 'b.md', content: '' }
+      ],
+      activeId: '/a.md'
+    })
+    render(<TabBar onOpenFile={vi.fn()} />, { wrapper })
+    expect(screen.getByText('a.md')).toBeInTheDocument()
+    expect(screen.getByText('b.md')).toBeInTheDocument()
   })
 
-  it('calls onSelect with the tab id when clicked', async () => {
+  it('calls onOpenFile when the + button is clicked', async () => {
     const user = userEvent.setup()
-    const onSelect = vi.fn()
-    render(<TabBar tabs={mockTabs} activeId={mockTabs[0].id} onSelect={onSelect} />)
-
-    await user.click(screen.getByText(mockTabs[1].name))
-
-    expect(onSelect).toHaveBeenCalledOnce()
-    expect(onSelect).toHaveBeenCalledWith(mockTabs[1].id)
-  })
-
-  it('renders the "Open file" button', () => {
-    render(<TabBar tabs={mockTabs} activeId={mockTabs[0].id} onSelect={vi.fn()} />)
-    expect(screen.getByRole('button', { name: 'Open file' })).toBeInTheDocument()
+    const onOpenFile = vi.fn()
+    render(<TabBar onOpenFile={onOpenFile} />, { wrapper })
+    await user.click(screen.getByRole('button', { name: 'Open file' }))
+    expect(onOpenFile).toHaveBeenCalledOnce()
   })
 })
