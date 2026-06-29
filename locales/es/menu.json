@@ -1,0 +1,21 @@
+{
+  "file": {
+    "menu": "Archivo",
+    "open": "Abrir archivo…",
+    "closeTab": "Cerrar pestaña",
+    "quit": "Salir"
+  },
+  "view": {
+    "menu": "Vista",
+    "toggleTheme": "Cambiar tema",
+    "language": "Idioma"
+  },
+  "languages": {
+    "en": "English",
+    "es": "Español"
+  },
+  "help": {
+    "menu": "Ayuda",
+    "about": "Acerca de Moltiquet"
+  }
+}

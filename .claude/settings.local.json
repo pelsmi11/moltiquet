@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm add *)",
+      "Bash(pnpm typecheck *)",
+      "Bash(mkdir -p /Users/pelsmi11/code/moltiquet/moltiquet/src/renderer/src/styles)",
+      "Bash(mv /Users/pelsmi11/code/moltiquet/moltiquet/src/renderer/src/assets/globals.css /Users/pelsmi11/code/moltiquet/moltiquet/src/renderer/src/styles/globals.css)",
+      "Bash(pnpm dlx *)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": ["shadcn"]
+}

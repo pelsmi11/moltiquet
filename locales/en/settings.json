@@ -1,0 +1,15 @@
+{
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "es": "Español"
+  },
+  "theme": {
+    "label": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "switchToLight": "Switch to light theme",
+    "switchToDark": "Switch to dark theme",
+    "toggle": "Toggle theme"
+  }
+}
