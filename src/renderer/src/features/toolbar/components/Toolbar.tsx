@@ -1,26 +1,64 @@
-import { Moon, Search, Sun } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { FolderOpen, Moon, Search, Sun } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 interface ToolbarProps {
-  fileName: string
+  fileName: string | null
   isDark: boolean
   onToggleTheme: () => void
+  onOpenFile: () => void
+  onOpenSearch: () => void
 }
 
-export function Toolbar({ fileName, isDark, onToggleTheme }: ToolbarProps): React.JSX.Element {
+export function Toolbar({
+  fileName,
+  isDark,
+  onToggleTheme,
+  onOpenFile,
+  onOpenSearch
+}: ToolbarProps): React.JSX.Element {
   const { t } = useTranslation(['settings', 'reader'])
 
   return (
-    <div className="flex h-12 items-center gap-3 border-b border-border bg-background px-4">
-      <span className="truncate text-sm font-medium text-muted-foreground">{fileName}</span>
-      <div className="relative ml-auto w-64">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        {/* ponytail: visual only — no search wiring in the mock */}
-        <Input placeholder={t('reader:searchPlaceholder')} className="h-8 pl-8" />
-      </div>
+    <div className="flex h-12 items-center gap-2 border-b border-border bg-background px-4">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8 shrink-0"
+            aria-label={t('reader:openFile')}
+            onClick={onOpenFile}
+          >
+            <FolderOpen className="size-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{t('reader:openFile')}</TooltipContent>
+      </Tooltip>
+
+      <span className="truncate text-sm font-medium text-foreground">{fileName ?? ''}</span>
+
+      <Separator orientation="vertical" className="mx-1 h-5" />
+
+      <div className="ml-auto" />
+
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8 shrink-0"
+            aria-label={t('reader:search')}
+            onClick={onOpenSearch}
+          >
+            <Search className="size-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{t('reader:search')}</TooltipContent>
+      </Tooltip>
+
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
