@@ -1,78 +1,51 @@
 import { useTranslation } from 'react-i18next'
-import { FolderOpen, Moon, Search, Sun } from 'lucide-react'
+import { FolderOpen, Moon, SlidersHorizontal, Sun } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu'
 
 interface ToolbarProps {
-  fileName: string | null
   isDark: boolean
   onToggleTheme: () => void
   onOpenFile: () => void
-  onOpenSearch: () => void
 }
 
-export function Toolbar({
-  fileName,
-  isDark,
-  onToggleTheme,
-  onOpenFile,
-  onOpenSearch
-}: ToolbarProps): React.JSX.Element {
+export function Toolbar({ isDark, onToggleTheme, onOpenFile }: ToolbarProps): React.JSX.Element {
   const { t } = useTranslation(['settings', 'reader'])
 
   return (
-    <div className="flex h-12 items-center gap-2 border-b border-border bg-background px-4">
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-8 shrink-0"
-            aria-label={t('reader:openFile')}
-            onClick={onOpenFile}
-          >
-            <FolderOpen className="size-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>{t('reader:openFile')}</TooltipContent>
-      </Tooltip>
+    <div className="flex shrink-0 items-center gap-2">
+      <span className="flex items-center gap-1.5 text-xs text-muted-foreground max-[760px]:hidden">
+        <span className="hidden min-[1100px]:inline">{t('reader:search')}</span>
+        <span className="rounded border border-current px-1 py-0.5 text-[10px] opacity-75">⌘F</span>
+      </span>
 
-      <span className="truncate text-sm font-medium text-foreground">{fileName ?? ''}</span>
-
-      <Separator orientation="vertical" className="mx-1 h-5" />
-
-      <div className="ml-auto" />
-
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-8 shrink-0"
-            aria-label={t('reader:search')}
-            onClick={onOpenSearch}
-          >
-            <Search className="size-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>{t('reader:search')}</TooltipContent>
-      </Tooltip>
-
-      <Tooltip>
-        <TooltipTrigger asChild>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
             size="icon"
             className="size-8"
-            aria-label={isDark ? t('theme.switchToLight') : t('theme.switchToDark')}
-            onClick={onToggleTheme}
+            aria-label={t('reader:optionsMenu')}
           >
-            {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+            <SlidersHorizontal className="size-4" />
           </Button>
-        </TooltipTrigger>
-        <TooltipContent>{t('theme.toggle')}</TooltipContent>
-      </Tooltip>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={onOpenFile}>
+            <FolderOpen className="size-4" />
+            {t('reader:openFile')}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={onToggleTheme}>
+            {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+            {t(isDark ? 'theme.switchToLight' : 'theme.switchToDark')}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   )
 }

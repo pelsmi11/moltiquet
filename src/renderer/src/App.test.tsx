@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useTabsStore } from '@/store/tabs'
 import { initRendererI18n } from './lib/i18n'
 import App from './App'
@@ -11,6 +11,15 @@ beforeEach(() => {
   useTabsStore.setState({ tabs: [], activeId: null })
   document.documentElement.classList.remove('dark')
 })
+
+// jsdom gives every element a zero-size rect, so react-resizable-panels' global
+// pointerdown listener false-positives a hit on the resize separator and calls
+// preventDefault(), which makes Radix ignore a plain click on the trigger.
+// Keyboard activation dispatches a real "click" with no pointerdown, sidestepping it.
+async function openOptionsMenu(user: ReturnType<typeof userEvent.setup>): Promise<void> {
+  screen.getByRole('button', { name: 'Options' }).focus()
+  await user.keyboard('{Enter}')
+}
 
 describe('App', () => {
   it('shows empty state when no file is open', async () => {
@@ -39,7 +48,8 @@ describe('App', () => {
     const user = userEvent.setup()
     render(<App />)
     expect(document.documentElement.classList.contains('dark')).toBe(false)
-    await user.click(screen.getByRole('button', { name: 'Switch to dark theme' }))
+    await openOptionsMenu(user)
+    await user.click(await screen.findByText('Switch to dark theme'))
     expect(document.documentElement.classList.contains('dark')).toBe(true)
     expect(window.api.setTheme).toHaveBeenCalledWith('dark')
   })
@@ -47,8 +57,10 @@ describe('App', () => {
   it('removes the dark class when toggled again', async () => {
     const user = userEvent.setup()
     render(<App />)
-    await user.click(screen.getByRole('button', { name: 'Switch to dark theme' }))
-    await user.click(screen.getByRole('button', { name: 'Switch to light theme' }))
+    await openOptionsMenu(user)
+    await user.click(await screen.findByText('Switch to dark theme'))
+    await openOptionsMenu(user)
+    await user.click(await screen.findByText('Switch to light theme'))
     expect(document.documentElement.classList.contains('dark')).toBe(false)
     expect(window.api.setTheme).toHaveBeenCalledWith('light')
   })
@@ -61,5 +73,53 @@ describe('App', () => {
   it('subscribes to tab:close push events', async () => {
     render(<App />)
     expect(window.api.onTabClose).toHaveBeenCalled()
+  })
+
+  it('restores previously open tabs and the active tab from the session on mount', async () => {
+    vi.mocked(window.api.getSession).mockResolvedValueOnce({
+      openFiles: ['/a.md', '/b.md'],
+      activeFile: '/b.md'
+    })
+    vi.mocked(window.api.readFile)
+      .mockResolvedValueOnce({ path: '/a.md', name: 'a.md', content: '# A' })
+      .mockResolvedValueOnce({ path: '/b.md', name: 'b.md', content: '# B' })
+    render(<App />)
+    await waitFor(() => {
+      expect(useTabsStore.getState().tabs.map((t) => t.id)).toEqual(['/a.md', '/b.md'])
+    })
+    expect(useTabsStore.getState().activeId).toBe('/b.md')
+  })
+
+  it('silently skips a restored path that no longer reads from disk', async () => {
+    vi.mocked(window.api.getSession).mockResolvedValueOnce({
+      openFiles: ['/a.md', '/deleted.md'],
+      activeFile: '/deleted.md'
+    })
+    vi.mocked(window.api.readFile)
+      .mockResolvedValueOnce({ path: '/a.md', name: 'a.md', content: '# A' })
+      .mockResolvedValueOnce(null)
+    render(<App />)
+    await waitFor(() => {
+      expect(useTabsStore.getState().tabs.map((t) => t.id)).toEqual(['/a.md'])
+    })
+    expect(useTabsStore.getState().activeId).toBe('/a.md')
+  })
+
+  it('persists the session after opening a file', async () => {
+    const user = userEvent.setup()
+    vi.mocked(window.api.openFileDialog).mockResolvedValueOnce({
+      path: '/c.md',
+      name: 'c.md',
+      content: '# C'
+    })
+    render(<App />)
+    await waitFor(() => expect(window.api.getSession).toHaveBeenCalled())
+    await user.click(screen.getByRole('button', { name: 'Open a Markdown file' }))
+    await waitFor(() => {
+      expect(window.api.setSession).toHaveBeenCalledWith({
+        openFiles: ['/c.md'],
+        activeFile: '/c.md'
+      })
+    })
   })
 })

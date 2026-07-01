@@ -1,4 +1,4 @@
-import type { SetLanguageResult, OpenedFile, GetThemeResult } from '@shared/ipc'
+import type { SetLanguageResult, OpenedFile, GetThemeResult, SessionState } from '@shared/ipc'
 
 declare global {
   interface Window {
@@ -13,6 +13,8 @@ declare global {
       setTheme: (theme: GetThemeResult) => Promise<boolean>
       onThemeChanged: (callback: (theme: GetThemeResult) => void) => () => void
       onTabClose: (callback: () => void) => () => void
+      getSession: () => Promise<SessionState>
+      setSession: (session: SessionState) => Promise<void>
     }
   }
 }

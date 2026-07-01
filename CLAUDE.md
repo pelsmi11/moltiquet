@@ -166,17 +166,17 @@ moltiquet/
 │       ├── index.html
 │       └── src/
 │           ├── main.tsx
-│           ├── App.tsx
+│           ├── App.tsx               # thin entry: providers + the active feature screen, nothing else
 │           ├── components/
 │           │   ├── ui/               # shadcn/ui components (generated via shadcn add)
 │           ├── features/             # feature-sliced: reader/, tabs/, toc/, toolbar/, settings/
-│           │   ├── reader/           # MarkdownView, SearchBar, useDocumentSearch, search.ts, highlight.ts
-│           │   ├── tabs/            # TabBar + interfaces
-│           │   ├── toc/             # TableOfContents + extract-headings
-│           │   ├── toolbar/         # Toolbar (open, file name, search button, theme)
+│           │   ├── reader/           # ReaderScreen (screen/), MarkdownView, SearchBar, useDocumentSearch, search.ts, highlight.ts
+│           │   ├── tabs/            # TabBar + useTabSync/useSessionRestore hooks
+│           │   ├── toc/             # TableOfContents + useTocPanel + extract-headings
+│           │   ├── toolbar/         # Toolbar (search hint, options menu: open file, theme)
 │           │   └── settings/         # languages constant; expand here for settings UI
 │           ├── store/                # zustand stores (tabs)
-│           ├── hooks/                # cross-cutting hooks (useActiveHeading, useHighlightTheme)
+│           ├── hooks/                # cross-cutting hooks (useActiveHeading, useHighlightTheme, useTheme, useLanguageSync)
 │           ├── lib/                  # utils, i18n
 │           └── styles/
 │               └── globals.css
@@ -194,7 +194,17 @@ moltiquet/
 └── LICENSE
 ```
 
-The empty `screens/`, `services/`, `interfaces/`, `utils/{constants,functions}/` folders under each feature are scaffold placeholders. **Do not add new code to those folders** — use the feature's `lib/` and `hooks/` instead. Remove the empty `.gitkeep` directories opportunistically.
+### Screen architecture
+
+Each renderer feature is organized so that the **main entry (`App.tsx`) stays as thin as possible** — it renders only the app-wide providers (e.g. `TooltipProvider`) and the active feature's screen. It must never hold composition JSX, state, effects, or handlers. Everything else lives inside a feature under a clear role:
+
+- **`screen/`** — the feature's top-level composed screen (the component that wires its own + other features' pieces together and calls the hooks). The whole reader UI lives in `features/reader/screen/ReaderScreen.tsx`. The on-disk folder name is singular: `screen/`.
+- **`hooks/`** — the feature's logic hooks (state + effects + IPC wiring), e.g. `features/tabs/hooks/useTabSync.ts`, `useSessionRestore.ts`, `features/toc/hooks/useTocPanel.ts`. App-wide concerns that don't belong to one feature go in the top-level `src/renderer/src/hooks/` (`useTheme`, `useLanguageSync`, `useHighlightTheme`, `useActiveHeading`).
+- **`services/`** — the feature's side-effect / service code, when a hook isn't the right shape for it.
+- **`lib/`** — the feature's pure, framework-free helpers (the most testable code; keep logic here — see "Keep logic out of Electron").
+- **`components/`** — presentational components for the feature.
+
+`interfaces/`, `utils/{constants,functions}/` remain available for the feature's types and small helpers. Remove leftover `.gitkeep` files opportunistically once a folder holds real code. The guiding rule: when `App.tsx` (or any screen) grows imperative logic, extract it into a hook/service in the owning feature rather than letting the entry file accumulate code.
 
 ---
 

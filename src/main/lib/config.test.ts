@@ -40,7 +40,12 @@ describe('readConfig', () => {
 describe('writeConfig', () => {
   it('persists config that can be read back correctly', () => {
     const p = freshPath()
-    const config = { language: 'es', theme: 'dark' as const }
+    const config = {
+      language: 'es',
+      theme: 'dark' as const,
+      openFiles: ['/a.md'],
+      activeFile: '/a.md'
+    }
     writeConfig(p, config)
     expect(readConfig(p)).toEqual(config)
   })
@@ -50,5 +55,27 @@ describe('writeConfig', () => {
     writeConfig(p, DEFAULT_CONFIG)
     const raw = JSON.parse(readFileSync(p, 'utf-8'))
     expect(raw).toEqual(DEFAULT_CONFIG)
+  })
+})
+
+describe('session fields', () => {
+  it('round-trips openFiles and activeFile like the other config fields', () => {
+    const p = freshPath()
+    writeFileSync(
+      p,
+      JSON.stringify({ openFiles: ['/a.md', '/b.md'], activeFile: '/b.md' }),
+      'utf-8'
+    )
+    const result = readConfig(p)
+    expect(result.openFiles).toEqual(['/a.md', '/b.md'])
+    expect(result.activeFile).toBe('/b.md')
+  })
+
+  it('defaults openFiles/activeFile to empty when absent', () => {
+    const p = freshPath()
+    writeFileSync(p, JSON.stringify({ language: 'es' }), 'utf-8')
+    const result = readConfig(p)
+    expect(result.openFiles).toEqual([])
+    expect(result.activeFile).toBeNull()
   })
 })

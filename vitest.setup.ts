@@ -60,7 +60,9 @@ if (typeof window !== 'undefined') {
       getTheme: vi.fn(() => Promise.resolve('light')),
       setTheme: vi.fn(() => Promise.resolve(true)),
       onThemeChanged: vi.fn(() => vi.fn()),
-      onTabClose: vi.fn(() => vi.fn())
+      onTabClose: vi.fn(() => vi.fn()),
+      getSession: vi.fn(() => Promise.resolve({ openFiles: [], activeFile: null })),
+      setSession: vi.fn(() => Promise.resolve())
     }
   })
 }

@@ -1,5 +1,10 @@
 import { ipcMain, BrowserWindow } from 'electron'
-import { IPC_CHANNELS, type SetLanguageResult, type GetThemeResult } from '@shared/ipc'
+import {
+  IPC_CHANNELS,
+  type SetLanguageResult,
+  type GetThemeResult,
+  type SessionState
+} from '@shared/ipc'
 import type { ConfigProvider } from '../providers/config-provider'
 import type { FileProvider } from '../providers/file-provider'
 
@@ -39,5 +44,20 @@ export function registerIpcHandlers({ configProvider, fileProvider }: HandlerDep
     if (theme !== 'light' && theme !== 'dark') return false
     configProvider.set('theme', theme as GetThemeResult)
     return true
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SESSION_GET, (): SessionState => {
+    return {
+      openFiles: configProvider.get('openFiles'),
+      activeFile: configProvider.get('activeFile')
+    }
+  })
+
+  ipcMain.handle(IPC_CHANNELS.SESSION_SET, (_event, session: SessionState): void => {
+    if (!session || !Array.isArray(session.openFiles)) return
+    if (!session.openFiles.every((p) => typeof p === 'string')) return
+    if (session.activeFile !== null && typeof session.activeFile !== 'string') return
+    configProvider.set('openFiles', session.openFiles)
+    configProvider.set('activeFile', session.activeFile)
   })
 }

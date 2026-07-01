@@ -27,10 +27,22 @@ incomplete in a few specific places.
 - GFM (tables, task lists, strikethrough) via `remark-gfm`.
 - Code syntax highlighting via `rehype-highlight` + `highlight.js`.
 - Stable heading IDs via `rehype-slug` (powers TOC anchors).
-- Tabs (multi-file) via Zustand store.
+- Tabs (multi-file) via Zustand store. Single merged top-bar row (tabs +
+  actions in one 44px row, not two stacked rows). Tab overflow handled by real
+  horizontal scroll (`overflow-x-auto`, fixed 138px tabs) plus a "show all
+  tabs" search `Popover`; a `+` button next to the last tab opens another file.
+  Active tab uses the warm `brand` accent token.
+- Toolbar collapsed to a `⌘F` search hint (text, no button) + a single options
+  `DropdownMenu` (open file, theme toggle). No file name / search / theme icons.
 - Light/dark theme, persisted via `ConfigProvider` to `userData/config.json`.
+- **Session restore** — open tab paths + active path persist to `config.json`
+  (`session:get`/`session:set`); on launch tabs are re-read fresh from disk
+  (missing files skipped) and the active tab reselected. Logic in
+  `features/tabs/hooks/useSessionRestore.ts`.
 - Document search — see `architecture.md`.
-- Resizable TOC panel via `react-resizable-panels`.
+- Resizable TOC panel via `react-resizable-panels`; auto-collapses under 760px
+  window width. `BrowserWindow` has `minWidth: 520`.
+- shadcn `dropdown-menu.tsx` + `popover.tsx` added under `components/ui/`.
 - i18n (en/es) — `i18next` + `react-i18next`, namespaces in `locales/{en,es}/*.json`.
 - Single-instance lock on Windows/Linux with `second-instance` forwarding
   argv paths to the running instance.
@@ -49,21 +61,29 @@ incomplete in a few specific places.
 
 ## Renderer organization
 
-Feature-sliced under `src/renderer/src/features/`:
+Feature-sliced under `src/renderer/src/features/`, **screen architecture**
+(see `CLAUDE.md`): `App.tsx` is a thin `TooltipProvider` + `<ReaderScreen />`
+shell — no state, effects, or composition. Everything else lives in a feature.
 
-- `reader/` — MarkdownView, ReaderView, SearchBar, hooks, search/highlight libs.
-- `tabs/` — TabBar + Zustand store lives at `src/renderer/src/store/tabs.ts`.
-- `toc/` — TableOfContents + heading extractor.
-- `toolbar/` — Toolbar (open, file name, search button, theme toggle).
+- `reader/` — `screen/ReaderScreen.tsx` (the composed app shell), MarkdownView,
+  ReaderView, SearchBar, hooks, search/highlight libs.
+- `tabs/` — TabBar; `hooks/useTabSync.ts` (file-open dialog + `onFileOpened`/
+  `onTabClose` IPC), `hooks/useSessionRestore.ts`; Zustand store at
+  `src/renderer/src/store/tabs.ts`.
+- `toc/` — TableOfContents + heading extractor; `hooks/useTocPanel.ts`
+  (collapse state, <760px auto-collapse, expand/collapse).
+- `toolbar/` — Toolbar (search hint + options dropdown menu).
 - `settings/` — essentially empty; the only file is the languages constant.
-- `reader/utils/{constants,functions}/` and similar sibling folders per feature
-  are scaffold placeholders with `.gitkeep` — **most are empty**, do not add
-  new code there. Use the feature's `lib/` and `hooks/` instead.
+- `screen/`, `hooks/`, `services/`, `lib/` under a feature are now first-class
+  homes for code (NOT off-limits scaffold anymore). Empty ones still hold
+  `.gitkeep`; delete it when you add real code.
 
-Cross-cutting (not under `features/`):
+Cross-cutting (not under `features/`), in `src/renderer/src/hooks/`:
+- `useActiveHeading.ts` — IntersectionObserver for TOC.
+- `useHighlightTheme.ts` — swaps highlight.js theme.
+- `useTheme.ts` — isDark state + load + `onThemeChanged` sync + toggle.
+- `useLanguageSync.ts` — `onLanguageChanged` → i18next.
 - `src/renderer/src/store/tabs.ts` — Zustand tab store.
-- `src/renderer/src/hooks/useActiveHeading.ts` — IntersectionObserver for TOC.
-- `src/renderer/src/hooks/useHighlightTheme.ts` — swaps highlight.js theme.
 - `src/renderer/src/lib/` — `cn()`, `i18n`, `i18n-resources.d.ts`.
 
 ## IPC channels (shared/ipc.ts is the source of truth)
@@ -76,6 +96,8 @@ Read on every `CLAUDE.md` edit — drift here breaks both sides.
 - `theme:get` / `theme:set` / `theme:changed` (push)
 - `tab:close` (push from main menu Cmd+W)
 - `language:changed` (push)
+- `session:get` / `session:set` (open tab paths + active path for restore;
+  `SessionState = { openFiles: string[]; activeFile: string | null }`)
 
 **Removed**: `find:in-page`, `find:stop`, `found:in-page` — the document
 search is now pure JS in the renderer, not Electron native `webContents.findInPage`.

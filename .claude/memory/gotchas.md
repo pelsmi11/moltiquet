@@ -73,6 +73,44 @@ has (`root`, `rootMargin`, `thresholds`, `takeRecords`). Empty constructor
 is suppressed because `no-empty-function` fires. Don't simplify the
 mock — the real `useActiveHeading.test.ts` exercises it.
 
+## Radix menu/popover triggers don't open on a plain click in jsdom
+
+If a test does `userEvent.click()` on a `DropdownMenu`/`Popover` trigger and
+the menu never appears (its `data-state` stays `closed`, `findByText` on an
+item times out), it is NOT your component — it's `react-resizable-panels`.
+The `ResizablePanelGroup` installs a **capture-phase `pointerdown` listener on
+`document`** for its drag-resize hit-testing. In jsdom every element reports a
+zero-size rect at (0,0), so that listener false-positives a "hit" on the resize
+separator and calls `preventDefault()`. Radix's trigger respects the prevented
+pointerdown and refuses to open.
+
+This only happens when a `ResizablePanelGroup` is in the same tree (i.e. when
+testing through `App`/`ReaderScreen`, not when testing `Toolbar`/`TabBar`
+in isolation).
+
+Workaround used in `App.test.tsx` (`openOptionsMenu` helper): activate the
+trigger via keyboard instead of a click —
+`trigger.focus(); await user.keyboard('{Enter}')`. Keyboard activation
+dispatches a real `click` with no `pointerdown`, so the listener never fires.
+Clicking menu *items* once the menu is open works fine; only opening the
+trigger is affected. Not a real-browser bug (real elements have real rects).
+
+## `screen/` and `hooks/`/`services/` are now first-class (screen architecture)
+
+The older note "do not add code to the scaffold folders (`screen/`, `services/`,
+…)" has been **reversed**. See `CLAUDE.md` → "Screen architecture": `App.tsx`
+stays a thin providers-only shell, the composed UI lives in
+`features/reader/screen/ReaderScreen.tsx`, and imperative logic lives in feature
+`hooks/` (or `services/`). If you see old text saying those folders are
+off-limits, it's stale.
+
+## Brand color is a token, not a hex literal
+
+The terracotta accent is `--brand` (oklch, defined in both `:root` and `.dark`
+in `globals.css`) and mapped via `@theme inline` to `--color-brand`. Use the
+Tailwind utilities `text-brand` / `bg-brand/10` / `dark:bg-brand/15`, NOT the
+raw `#c2552e`. Adding `bg-[#c2552e]` back would re-scatter the literal.
+
 ## Tooling gotchas
 
 - **Node warnings in pnpm scripts**: `electron_mirror`,

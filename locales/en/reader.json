@@ -3,5 +3,9 @@
   "noFile": "No file open",
   "openFile": "Open a Markdown file",
   "searchPlaceholder": "Find in document…",
-  "search": "Search"
+  "search": "Search",
+  "searchTabs": "Search open tabs",
+  "showAllTabs": "Show all open tabs",
+  "addFile": "Add file",
+  "optionsMenu": "Options"
 }

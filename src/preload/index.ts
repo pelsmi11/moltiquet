@@ -3,7 +3,8 @@ import {
   IPC_CHANNELS,
   type SetLanguageResult,
   type OpenedFile,
-  type GetThemeResult
+  type GetThemeResult,
+  type SessionState
 } from '@shared/ipc'
 
 const api = {
@@ -36,7 +37,10 @@ const api = {
     const handler = (): void => callback()
     ipcRenderer.on(IPC_CHANNELS.TAB_CLOSE, handler)
     return () => ipcRenderer.removeListener(IPC_CHANNELS.TAB_CLOSE, handler)
-  }
+  },
+  getSession: (): Promise<SessionState> => ipcRenderer.invoke(IPC_CHANNELS.SESSION_GET),
+  setSession: (session: SessionState): Promise<void> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SESSION_SET, session)
 }
 
 contextBridge.exposeInMainWorld('api', api)

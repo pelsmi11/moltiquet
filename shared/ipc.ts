@@ -8,7 +8,9 @@ export const IPC_CHANNELS = {
   THEME_GET: 'theme:get',
   THEME_SET: 'theme:set',
   THEME_CHANGED: 'theme:changed',
-  TAB_CLOSE: 'tab:close'
+  TAB_CLOSE: 'tab:close',
+  SESSION_GET: 'session:get',
+  SESSION_SET: 'session:set'
 } as const
 
 export type SetLanguagePayload = string
@@ -20,4 +22,9 @@ export interface OpenedFile {
   path: string
   name: string
   content: string
+}
+
+export interface SessionState {
+  openFiles: string[]
+  activeFile: string | null
 }

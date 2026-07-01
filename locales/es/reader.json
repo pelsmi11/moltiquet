@@ -3,5 +3,9 @@
   "noFile": "Ningún archivo abierto",
   "openFile": "Abrir un archivo Markdown",
   "searchPlaceholder": "Buscar en el documento…",
-  "search": "Buscar"
+  "search": "Buscar",
+  "searchTabs": "Buscar pestañas abiertas",
+  "showAllTabs": "Mostrar todas las pestañas abiertas",
+  "addFile": "Agregar archivo",
+  "optionsMenu": "Opciones"
 }

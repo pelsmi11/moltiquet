@@ -3,9 +3,16 @@ import { existsSync, readFileSync, writeFileSync } from 'fs'
 export interface AppConfig {
   language: string
   theme: 'light' | 'dark'
+  openFiles: string[]
+  activeFile: string | null
 }
 
-export const DEFAULT_CONFIG: AppConfig = { language: 'en', theme: 'light' }
+export const DEFAULT_CONFIG: AppConfig = {
+  language: 'en',
+  theme: 'light',
+  openFiles: [],
+  activeFile: null
+}
 
 export function readConfig(filePath: string): AppConfig {
   if (!existsSync(filePath)) return { ...DEFAULT_CONFIG }

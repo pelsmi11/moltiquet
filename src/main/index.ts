@@ -16,6 +16,7 @@ function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 900,
     height: 670,
+    minWidth: 520,
     show: false,
     autoHideMenuBar: false,
     ...(process.platform === 'linux' ? { icon } : {}),
